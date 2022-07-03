@@ -6,6 +6,10 @@ import org.testng.annotations.Test;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.stream.Stream;
+
+import static org.testng.Assert.assertEquals;
 
 public class UseCase01Test {
     private Connection con;
@@ -23,12 +27,22 @@ public class UseCase01Test {
     @Test
     public void e02_run_data_manipulation_direct() throws SQLException {
         int result = Jdbcw.runDML(con, "INSERT INTO users (id, name) VALUES (1, 'Adam')");
-        assert result == 1 : "Expected single row update to return 1, not %d.".formatted(result);
+        assertEquals(result, 1, "Update count for single row");
     }
 
     @Test
-    public void e02_run_data_manipulation_with_args() throws SQLException {
-        int result = Jdbcw.runDML(con, "DELETE FROM users WHERE id = ?", 0L);
-        assert result == 0 : "Expected zero row delete to return 0, not %d.".formatted(result);
+    public void e03_run_data_manipulation_with_args() throws SQLException {
+        int result = Jdbcw.runDML(con, "INSERT INTO users (id, name) VALUES (?, ?)", 2, "Eve");
+        assertEquals(result, 1, "Update count for single row");
+    }
+
+    @Test
+    public void e04_run_query() throws SQLException {
+        try (Stream<String> stream =
+             Jdbcw.runQuery(con, rs -> rs.getString(1), "SELECT name FROM users ORDER BY id ASC")
+        ) {
+            List<String> users = stream.toList();
+            assertEquals(users, List.of("Adam", "Eve"), "Users in database");
+        }
     }
 }
