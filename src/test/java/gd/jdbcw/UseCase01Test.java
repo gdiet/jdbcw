@@ -81,4 +81,12 @@ public class UseCase01Test {
             assertEquals(stream.toList(), List.of("Adam", "Eve", "Kain", "Able"), "Users in database");
         }
     }
+
+    @Test
+    public void e08_return_keys() throws SQLException {
+        Jdbcw.ddl (con, "CREATE TABLE cars(id BIGINT AUTO_INCREMENT, name VARCHAR)");
+        PrepReturnKeys<Long> prep = Jdbcw.prepReturnKeys(con, rs -> rs.getLong(1), "INSERT INTO cars(name) VALUES (?)");
+        assertEquals(prep.exec("Alfa Romeo"), new PrepReturnKeys.Result<>(1, 1L), "Update count and generated id for single row");
+        assertEquals(prep.exec("Beetle"    ), new PrepReturnKeys.Result<>(1, 2L), "Update count and generated id for single row");
+    }
 }

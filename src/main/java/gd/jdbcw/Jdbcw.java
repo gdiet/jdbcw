@@ -29,6 +29,11 @@ public class Jdbcw {
         return new PrepExec(con.prepareStatement(sql));
     }
 
+    /** If possible close the {@link PrepReturnKeys} instance after use e.g. by wrapping it into a try-resource block. */
+    public static <T> PrepReturnKeys<T> prepReturnKeys(Connection con, Mapper<T> mapper, String sql) throws SQLException {
+        return new PrepReturnKeys<>(con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS), mapper);
+    }
+
     public interface Mapper<T> {
         T apply(ResultSet rs) throws SQLException;
     }

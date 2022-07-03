@@ -13,14 +13,14 @@ public class PrepQuery<T> implements AutoCloseable {
     private final ReentrantLock lock = new ReentrantLock();
     private final int timeoutSeconds;
 
-    public PrepQuery(PreparedStatement prep, Jdbcw.Mapper<T> mapper, int timeoutSeconds) {
+    PrepQuery(PreparedStatement prep, Jdbcw.Mapper<T> mapper, int timeoutSeconds) {
         this.prep = prep;
         this.mapper = mapper;
         this.timeoutSeconds = timeoutSeconds;
     }
 
     /** Use a timeout of 5 seconds when waiting for previous queries to finish. */
-    public PrepQuery(PreparedStatement prep, Jdbcw.Mapper<T> mapper) {
+    PrepQuery(PreparedStatement prep, Jdbcw.Mapper<T> mapper) {
         this(prep, mapper, 5);
     }
 

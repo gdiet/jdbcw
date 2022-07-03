@@ -6,7 +6,7 @@ import java.sql.SQLException;
 public class PrepExec implements AutoCloseable {
     private final PreparedStatement prep;
 
-    public PrepExec(PreparedStatement prep) { this.prep = prep; }
+    PrepExec(PreparedStatement prep) { this.prep = prep; }
 
     /** This method is synchronized thus thread safe. For maximum performance in multithreaded environments, consider
       * using e.g. {@link ThreadLocal} instances of {@link PrepExec}. */
