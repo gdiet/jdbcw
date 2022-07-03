@@ -45,4 +45,18 @@ public class UseCase01Test {
             assertEquals(users, List.of("Adam", "Eve"), "Users in database");
         }
     }
+
+    @Test
+    public void e05_prepare_data_manipulation() throws SQLException {
+        try (Prep prep = Jdbcw.prepDML(con, "INSERT INTO users (id, name) VALUES (?, ?)")) {
+            assertEquals(prep.run(4, "Able"), 1, "Update count for single row");
+            assertEquals(prep.run(3, "Kain"), 1, "Update count for single row");
+        }
+        try (Stream<String> stream =
+             Jdbcw.runQuery(con, rs -> rs.getString(1), "SELECT name FROM users ORDER BY id ASC")
+        ) {
+            List<String> users = stream.toList();
+            assertEquals(users, List.of("Adam", "Eve", "Kain", "Able"), "Users in database");
+        }
+    }
 }
