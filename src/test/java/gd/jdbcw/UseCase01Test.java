@@ -48,7 +48,7 @@ public class UseCase01Test {
 
     @Test
     public void e05_prepare_data_manipulation() throws SQLException {
-        try (Prep prep = Jdbcw.prepDML(con, "INSERT INTO users (id, name) VALUES (?, ?)")) {
+        try (PrepRun prep = Jdbcw.prepRun(con, "INSERT INTO users (id, name) VALUES (?, ?)")) {
             assertEquals(prep.run(4, "Able"), 1, "Update count for single row");
             assertEquals(prep.run(3, "Kain"), 1, "Update count for single row");
         }
@@ -57,6 +57,16 @@ public class UseCase01Test {
         ) {
             List<String> users = stream.toList();
             assertEquals(users, List.of("Adam", "Eve", "Kain", "Able"), "Users in database");
+        }
+    }
+
+    @Test
+    public void e06_prepare_query_one() throws SQLException {
+        try (PrepQuery<String> prep =
+             Jdbcw.prepQuery(con, rs -> rs.getString(1), "SELECT name FROM users WHERE id = ?")
+        ) {
+            assertEquals(prep.queryOne(4), "Able", "name of user 4");
+            assertEquals(prep.queryOne(1), "Adam", "name of user 1");
         }
     }
 }

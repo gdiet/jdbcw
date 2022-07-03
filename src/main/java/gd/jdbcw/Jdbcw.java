@@ -16,7 +16,7 @@ public class Jdbcw {
     }
 
     /** Use for one-shot data manipulation like INSERT, UPDATE, DELETE. For better performance, prefer
-      * {@link #prepDML(Connection, String)} when running multiple data manipulations of the same type. */
+      * {@link #prepRun(Connection, String)} when running multiple data manipulations of the same type. */
     public static int runDML(Connection con, String sql, Object... args) throws SQLException {
         try (PreparedStatement prep = con.prepareStatement(sql)) {
             setArgs(prep, args);
@@ -24,9 +24,9 @@ public class Jdbcw {
         }
     }
 
-    /** If possible close the {@link Prep} instance after use e.g. by wrapping it into a try-resource block. */
-    public static Prep prepDML(Connection con, String sql) throws SQLException {
-        return new Prep(con.prepareStatement(sql));
+    /** If possible close the {@link PrepRun} instance after use e.g. by wrapping it into a try-resource block. */
+    public static PrepRun prepRun(Connection con, String sql) throws SQLException {
+        return new PrepRun(con.prepareStatement(sql));
     }
 
     public interface Mapper<T> {
@@ -39,7 +39,7 @@ public class Jdbcw {
         PreparedStatement prep = con.prepareStatement(sql);
         setArgs(prep, args);
         ResultSet rs = prep.executeQuery();
-        Iterator<T> iter = new Iterator<>() {
+        Iterator<T> it = new Iterator<>() {
             boolean hasNext = rs.next();
             @Override public boolean hasNext() { return hasNext; }
             @Override public T next() {
@@ -48,11 +48,16 @@ public class Jdbcw {
                 catch (SQLException e) { throw new RuntimeException(e); }
             }
         };
-        Spliterator<T> split = Spliterators.spliteratorUnknownSize(iter, Spliterator.ORDERED);
+        Spliterator<T> split = Spliterators.spliteratorUnknownSize(it, Spliterator.ORDERED);
         return StreamSupport.stream(split, false).onClose(() -> {
             try { rs.close(); prep.close(); }
             catch (SQLException e) { throw new RuntimeException(e); }
         });
+    }
+
+    /** If possible close the {@link PrepQuery} instance after use e.g. by wrapping it into a try-resource block. */
+    public static <T> PrepQuery<T> prepQuery(Connection con, Mapper<T> mapper, String sql) throws SQLException {
+        return new PrepQuery<>(con.prepareStatement(sql), mapper);
     }
 
     static void setArgs(PreparedStatement prep, Object... args) throws SQLException {
