@@ -20,26 +20,28 @@ public class UseCase01Test {
     }
 
     @Test
-    public void e01_run_data_definition() throws SQLException {
-        Jdbcw.runDDL(con, "CREATE TABLE users (id BIGINT, name VARCHAR)");
+    public void e01_exec_data_definition() throws SQLException {
+        Jdbcw.ddl(con, "CREATE TABLE users (id BIGINT, name VARCHAR)");
     }
 
     @Test
-    public void e02_run_data_manipulation_direct() throws SQLException {
-        int result = Jdbcw.runDML(con, "INSERT INTO users (id, name) VALUES (1, 'Adam')");
-        assertEquals(result, 1, "Update count for single row");
+    public void e02_exec_update() throws SQLException {
+        int result1 = Jdbcw.exec(con, "INSERT INTO users (id, name) VALUES (?, ?)", 1, "Adam");
+        assertEquals(result1, 1, "Update count for single row");
+        int result2 = Jdbcw.exec(con, "INSERT INTO users (id, name) VALUES (?, ?)", 2, "Eve");
+        assertEquals(result2, 1, "Update count for single row");
     }
 
     @Test
-    public void e03_run_data_manipulation_with_args() throws SQLException {
-        int result = Jdbcw.runDML(con, "INSERT INTO users (id, name) VALUES (?, ?)", 2, "Eve");
-        assertEquals(result, 1, "Update count for single row");
+    public void e03_query_one() throws SQLException {
+        String name = Jdbcw.queryOne(con, rs -> rs.getString(1), "SELECT name FROM users WHERE id = ?", 2);
+        assertEquals(name, "Eve", "name of user 2");
     }
 
     @Test
-    public void e04_run_query() throws SQLException {
+    public void e04_query() throws SQLException {
         try (Stream<String> stream =
-             Jdbcw.runQuery(con, rs -> rs.getString(1), "SELECT name FROM users ORDER BY id ASC")
+             Jdbcw.query(con, rs -> rs.getString(1), "SELECT name FROM users ORDER BY id ASC")
         ) {
             List<String> users = stream.toList();
             assertEquals(users, List.of("Adam", "Eve"), "Users in database");
@@ -47,13 +49,13 @@ public class UseCase01Test {
     }
 
     @Test
-    public void e05_prepare_data_manipulation() throws SQLException {
-        try (PrepRun prep = Jdbcw.prepRun(con, "INSERT INTO users (id, name) VALUES (?, ?)")) {
-            assertEquals(prep.run(4, "Able"), 1, "Update count for single row");
-            assertEquals(prep.run(3, "Kain"), 1, "Update count for single row");
+    public void e05_prepare_update() throws SQLException {
+        try (PrepExec prep = Jdbcw.prepExec(con, "INSERT INTO users (id, name) VALUES (?, ?)")) {
+            assertEquals(prep.exec(4, "Able"), 1, "Update count for single row");
+            assertEquals(prep.exec(3, "Kain"), 1, "Update count for single row");
         }
         try (Stream<String> stream =
-             Jdbcw.runQuery(con, rs -> rs.getString(1), "SELECT name FROM users ORDER BY id ASC")
+             Jdbcw.query(con, rs -> rs.getString(1), "SELECT name FROM users ORDER BY id ASC")
         ) {
             List<String> users = stream.toList();
             assertEquals(users, List.of("Adam", "Eve", "Kain", "Able"), "Users in database");

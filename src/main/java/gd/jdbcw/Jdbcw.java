@@ -9,24 +9,24 @@ import java.util.stream.StreamSupport;
 
 public class Jdbcw {
     /** Use for DDL executions only. Using this method for other SQL commands is code smell. */
-    public static void runDDL(final Connection con, final String ddl) throws SQLException {
+    public static void ddl(final Connection con, final String ddl) throws SQLException {
         try (Statement stat = con.createStatement()) {
             stat.execute(ddl);
         }
     }
 
     /** Use for one-shot data manipulation like INSERT, UPDATE, DELETE. For better performance, prefer
-      * {@link #prepRun(Connection, String)} when running multiple data manipulations of the same type. */
-    public static int runDML(Connection con, String sql, Object... args) throws SQLException {
+      * {@link #prepExec(Connection, String)} when running multiple data manipulations of the same type. */
+    public static int exec(Connection con, String sql, Object... args) throws SQLException {
         try (PreparedStatement prep = con.prepareStatement(sql)) {
             setArgs(prep, args);
             return prep.executeUpdate();
         }
     }
 
-    /** If possible close the {@link PrepRun} instance after use e.g. by wrapping it into a try-resource block. */
-    public static PrepRun prepRun(Connection con, String sql) throws SQLException {
-        return new PrepRun(con.prepareStatement(sql));
+    /** If possible close the {@link PrepExec} instance after use e.g. by wrapping it into a try-resource block. */
+    public static PrepExec prepExec(Connection con, String sql) throws SQLException {
+        return new PrepExec(con.prepareStatement(sql));
     }
 
     public interface Mapper<T> {
@@ -34,7 +34,17 @@ public class Jdbcw {
     }
 
     /** If possible close the stream after use by wrapping it into a try-resource block. */
-    public static <T> Stream<T> runQuery(Connection con, Mapper<T> mapper, String sql, Object... args) throws SQLException {
+    public static <T> T queryOne(Connection con, Mapper<T> mapper, String sql, Object... args) throws SQLException {
+        try (PreparedStatement prep = con.prepareStatement(sql)) {
+            setArgs(prep, args);
+            ResultSet rs = prep.executeQuery();
+            if (!rs.next()) throw new IllegalStateException("Query returned no results, one required.");
+            return mapper.apply(rs);
+        }
+    }
+
+    /** If possible close the stream after use by wrapping it into a try-resource block. */
+    public static <T> Stream<T> query(Connection con, Mapper<T> mapper, String sql, Object... args) throws SQLException {
         // 'prep' is closed when the Stream is closed, see below.
         PreparedStatement prep = con.prepareStatement(sql);
         setArgs(prep, args);
