@@ -35,6 +35,7 @@ public class Jdbcw {
 
     /** If possible close the stream after use by wrapping it into a try-resource block. */
     public static <T> Stream<T> runQuery(Connection con, Mapper<T> mapper, String sql, Object... args) throws SQLException {
+        // 'prep' and 'rs' are closed when the Stream is closed, see below.
         PreparedStatement prep = con.prepareStatement(sql);
         setArgs(prep, args);
         ResultSet rs = prep.executeQuery();
@@ -49,7 +50,7 @@ public class Jdbcw {
         };
         Spliterator<T> split = Spliterators.spliteratorUnknownSize(iter, Spliterator.ORDERED);
         return StreamSupport.stream(split, false).onClose(() -> {
-            try { prep.close(); }
+            try { rs.close(); prep.close(); }
             catch (SQLException e) { throw new RuntimeException(e); }
         });
     }
