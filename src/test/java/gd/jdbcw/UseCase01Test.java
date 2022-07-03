@@ -21,8 +21,14 @@ public class UseCase01Test {
     }
 
     @Test
-    public void e02_run_data_manipulation() throws SQLException {
+    public void e02_run_data_manipulation_direct() throws SQLException {
         int result = Jdbcw.runDML(con, "INSERT INTO users (id, name) VALUES (1, 'Adam')");
         assert result == 1 : "Expected single row update to return 1, not %d.".formatted(result);
+    }
+
+    @Test
+    public void e02_run_data_manipulation_with_args() throws SQLException {
+        int result = Jdbcw.runDML(con, "DELETE FROM users WHERE id = ?", 0L);
+        assert result == 0 : "Expected zero row delete to return 0, not %d.".formatted(result);
     }
 }
