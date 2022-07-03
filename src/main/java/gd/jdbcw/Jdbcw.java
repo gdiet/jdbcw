@@ -36,8 +36,13 @@ public class Jdbcw {
     /** If possible close the stream after use by wrapping it into a try-resource block. */
     public static <T> T queryOne(Connection con, Mapper<T> mapper, String sql, Object... args) throws SQLException {
         try (PreparedStatement prep = con.prepareStatement(sql)) {
-            setArgs(prep, args);
-            ResultSet rs = prep.executeQuery();
+            return queryOne(prep, mapper, args);
+        }
+    }
+
+    static <T> T queryOne(PreparedStatement prep, Mapper<T> mapper, Object... args) throws SQLException {
+        setArgs(prep, args);
+        try (ResultSet rs = prep.executeQuery()) {
             if (!rs.next()) throw new IllegalStateException("Query returned no results, one required.");
             return mapper.apply(rs);
         }
