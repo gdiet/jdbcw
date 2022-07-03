@@ -3,19 +3,23 @@ package gd.jdbcw;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 public class Jdbcw {
     /** Use for DDL executions only. Using this method for other SQL commands is code smell. */
     public static void runDDL(final Connection con, final String ddl) throws SQLException {
-        con.createStatement().execute(ddl);
+        try (Statement stat = con.createStatement()) {
+            stat.execute(ddl);
+        }
     }
 
     /** Use for data manipulation like INSERT, UPDATE, DELETE. For maximum performance, prefer
       * the Jdbcw.prep* prepared statement methods. */
     public static int runDML(Connection con, String sql, Object... args) throws SQLException {
-        PreparedStatement prep = con.prepareStatement(sql);
-        setArgs(prep, args);
-        return prep.executeUpdate();
+        try (PreparedStatement prep = con.prepareStatement(sql)) {
+            setArgs(prep, args);
+            return prep.executeUpdate();
+        }
     }
 
     private static void setArgs(PreparedStatement prep, Object... args) throws SQLException {
