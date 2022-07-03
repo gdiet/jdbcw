@@ -48,12 +48,16 @@ public class Jdbcw {
         }
     }
 
-    /** If possible close the stream after use by wrapping it into a try-resource block. */
+    /** If possible close the stream after use e.g. by wrapping it into a try-resource block. */
     public static <T> Stream<T> query(Connection con, Mapper<T> mapper, String sql, Object... args) throws SQLException {
-        // 'prep' is closed when the Stream is closed, see below.
         PreparedStatement prep = con.prepareStatement(sql);
+        return query(prep, mapper, args).onClose(() -> {
+            try { prep.close(); } catch (SQLException e) { throw new RuntimeException(e); }
+        });
+    }
+
+    public static <T> Stream<T> query(PreparedStatement prep, Mapper<T> mapper, Object... args) throws SQLException {
         setArgs(prep, args);
-        // No need to close 'rs', it's closed automatically when 'prep' is closed.
         ResultSet rs = prep.executeQuery();
         Iterator<T> it = new Iterator<>() {
             boolean hasNext = rs.next();
@@ -65,10 +69,7 @@ public class Jdbcw {
             }
         };
         Spliterator<T> split = Spliterators.spliteratorUnknownSize(it, Spliterator.ORDERED);
-        return StreamSupport.stream(split, false).onClose(() -> {
-            try { prep.close(); }
-            catch (SQLException e) { throw new RuntimeException(e); }
-        });
+        return StreamSupport.stream(split, false);
     }
 
     /** If possible close the {@link PrepQuery} instance after use e.g. by wrapping it into a try-resource block. */

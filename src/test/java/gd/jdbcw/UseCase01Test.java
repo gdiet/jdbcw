@@ -57,18 +57,28 @@ public class UseCase01Test {
         try (Stream<String> stream =
              Jdbcw.query(con, rs -> rs.getString(1), "SELECT name FROM users ORDER BY id ASC")
         ) {
-            List<String> users = stream.toList();
-            assertEquals(users, List.of("Adam", "Eve", "Kain", "Able"), "Users in database");
+            assertEquals(stream.toList(), List.of("Adam", "Eve", "Kain", "Able"), "Users in database");
         }
     }
 
     @Test
-    public void e06_prepare_query_one() throws SQLException {
+    public void e06_prepare_query_one() throws SQLException, InterruptedException {
         try (PrepQuery<String> prep =
              Jdbcw.prepQuery(con, rs -> rs.getString(1), "SELECT name FROM users WHERE id = ?")
         ) {
             assertEquals(prep.queryOne(4), "Able", "name of user 4");
             assertEquals(prep.queryOne(1), "Adam", "name of user 1");
+        }
+    }
+
+    @Test
+    public void e07_prepare_query() throws SQLException, InterruptedException {
+        String query = "SELECT name FROM users ORDER BY id ASC";
+        try (
+            PrepQuery<String> prep = Jdbcw.prepQuery(con, rs -> rs.getString(1), query);
+            Stream<String> stream = prep.query()
+        ) {
+            assertEquals(stream.toList(), List.of("Adam", "Eve", "Kain", "Able"), "Users in database");
         }
     }
 }
