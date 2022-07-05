@@ -8,16 +8,24 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class Jdbcw {
+    private final Connection con;
+
+    public interface ConnectionSupplier {
+        Connection get() throws SQLException;
+    }
+
+    public Jdbcw(final ConnectionSupplier cs) throws SQLException { con = cs.get(); }
+
     /** Use for DDL executions only. Using this method for other SQL commands is code smell. */
-    public static void ddl(final Connection con, final String ddl) throws SQLException {
+    public void ddl(final String ddl) throws SQLException {
         try (Statement stat = con.createStatement()) {
             stat.execute(ddl);
         }
     }
 
     /** Use for one-shot data manipulation like INSERT, UPDATE, DELETE. For better performance, prefer
-      * {@link #prepExec(Connection, String)} when running multiple data manipulations of the same type. */
-    public static int exec(Connection con, String sql, Object... args) throws SQLException {
+      * {@link #prepExec(String)} when running multiple data manipulations of the same type. */
+    public int exec(final String sql, final Object... args) throws SQLException {
         try (PreparedStatement prep = con.prepareStatement(sql)) {
             setArgs(prep, args);
             return prep.executeUpdate();
@@ -25,12 +33,12 @@ public class Jdbcw {
     }
 
     /** If possible close the {@link PrepExec} instance after use e.g. by wrapping it into a try-resource block. */
-    public static PrepExec prepExec(Connection con, String sql) throws SQLException {
+    public PrepExec prepExec(final String sql) throws SQLException {
         return new PrepExec(con.prepareStatement(sql));
     }
 
     /** If possible close the {@link PrepReturnKeys} instance after use e.g. by wrapping it into a try-resource block. */
-    public static <T> PrepReturnKeys<T> prepReturnKeys(Connection con, Mapper<T> mapper, String sql) throws SQLException {
+    public <T> PrepReturnKeys<T> prepReturnKeys(final Mapper<T> mapper, final String sql) throws SQLException {
         return new PrepReturnKeys<>(con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS), mapper);
     }
 
@@ -39,7 +47,7 @@ public class Jdbcw {
     }
 
     /** If possible close the stream after use by wrapping it into a try-resource block. */
-    public static <T> T queryOne(Connection con, Mapper<T> mapper, String sql, Object... args) throws SQLException {
+    public <T> T queryOne(final Mapper<T> mapper, final String sql, final Object... args) throws SQLException {
         try (PreparedStatement prep = con.prepareStatement(sql)) {
             return queryOne(prep, mapper, args);
         }
@@ -54,7 +62,7 @@ public class Jdbcw {
     }
 
     /** If possible close the stream after use e.g. by wrapping it into a try-resource block. */
-    public static <T> Stream<T> query(Connection con, Mapper<T> mapper, String sql, Object... args) throws SQLException {
+    public <T> Stream<T> query(final Mapper<T> mapper, final String sql, final Object... args) throws SQLException {
         PreparedStatement prep = con.prepareStatement(sql);
         return query(prep, mapper, args).onClose(() -> {
             try { prep.close(); } catch (SQLException e) { throw new RuntimeException(e); }
@@ -78,7 +86,7 @@ public class Jdbcw {
     }
 
     /** If possible close the {@link PrepQuery} instance after use e.g. by wrapping it into a try-resource block. */
-    public static <T> PrepQuery<T> prepQuery(Connection con, Mapper<T> mapper, String sql) throws SQLException {
+    public <T> PrepQuery<T> prepQuery(Mapper<T> mapper, String sql) throws SQLException {
         return new PrepQuery<>(con.prepareStatement(sql), mapper);
     }
 
