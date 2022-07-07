@@ -18,6 +18,7 @@ public class PrepReturnKeys<T> implements AutoCloseable {
     /** This method is synchronized thus thread safe. For maximum performance in multithreaded environments, consider
       * using e.g. {@link ThreadLocal} instances of {@link PrepReturnKeys}. */
     public Result<T> exec(Object... args) throws SQLException {
+        // TODO The return type is too unwieldy
         synchronized (this) {
             Jdbcw.setArgs(prep, args);
             int rows = prep.executeUpdate();

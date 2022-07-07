@@ -9,7 +9,6 @@ import java.util.stream.StreamSupport;
 
 public class Jdbcw {
 
-    public interface ConnectionSupplier { Connection get() throws SQLException; }
     public interface Mapper<T> { T apply(ResultSet rs) throws SQLException; }
 
     /** RuntimeException wrapper for an {@link SQLException}. */
@@ -17,10 +16,24 @@ public class Jdbcw {
         public SQLException cause;
         public JDBCWException(SQLException cause) { this.cause = cause; }
     }
+    public interface Transaction<T> { T get() throws SQLException; }
 
     private final Connection con;
 
-    public Jdbcw(final ConnectionSupplier cs) throws SQLException { con = cs.get(); }
+    /** Sets setAutoCommit(true). */
+    public Jdbcw(final Connection con) throws SQLException { this.con = con; con.setAutoCommit(true); }
+
+    // TODO return void method missing, don't force user to return something.
+    public <T> T transaction(Transaction<T> t) throws SQLException {
+        try {
+            con.setAutoCommit(false);
+            T result = t.get();
+            con.commit();
+            return result;
+        }
+        catch (Exception e) { con.rollback(); throw e; }
+        finally { con.setAutoCommit(true); }
+    }
 
     /** Use for DDL executions only. Using this method for other SQL commands is code smell. */
     public void ddl(final String ddl) throws SQLException {
@@ -41,6 +54,12 @@ public class Jdbcw {
     /** If possible close the {@link PrepReturnKeys} instance after use e.g. by wrapping it into a try-resource block. */
     public <T> PrepReturnKeys<T> prepReturnKeys(final Mapper<T> mapper, final String sql) throws SQLException {
         return new PrepReturnKeys<>(con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS), mapper);
+    }
+
+    /** Use when a generated BIGINT key is returned.
+      * If possible close the {@link PrepReturnKeys} instance after use e.g. by wrapping it into a try-resource block. */
+    public PrepReturnKeys<Long> prepReturnKeys(final String sql) throws SQLException {
+        return new PrepReturnKeys<>(con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS), rs -> rs.getLong(1));
     }
 
     /** If possible close the stream after use by wrapping it into a try-resource block. */

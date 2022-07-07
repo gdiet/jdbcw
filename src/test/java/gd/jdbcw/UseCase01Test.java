@@ -15,7 +15,7 @@ public class UseCase01Test {
 
     @BeforeClass
     public void init_connection() throws SQLException {
-        jdbc = new Jdbcw(() -> DriverManager.getConnection("jdbc:h2:mem:test"));
+        jdbc = new Jdbcw(DriverManager.getConnection("jdbc:h2:mem:test"));
     }
 
     @Test
@@ -89,6 +89,34 @@ public class UseCase01Test {
         ) {
             assertEquals(prep.exec("Alfa Romeo"), new PrepReturnKeys.Result<>(1, 1L), "Update count and generated id for single row");
             assertEquals(prep.exec("Beetle"    ), new PrepReturnKeys.Result<>(1, 2L), "Update count and generated id for single row");
+        }
+    }
+
+    @Test
+    public void e09_transaction() throws SQLException {
+        jdbc.ddl ("CREATE TABLE pets(id IDENTITY, name VARCHAR UNIQUE)");
+        try (
+            PrepReturnKeys<Long> prep = jdbc.prepReturnKeys(rs -> rs.getLong(1), "INSERT INTO pets(name) VALUES (?)")
+        ) {
+            assertEquals(prep.exec("Dog"), new PrepReturnKeys.Result<>(1, 1L), "Update count and generated id for single row");
+
+            try {
+                jdbc.transaction(() -> {
+                    assertEquals(prep.exec("Cat"), new PrepReturnKeys.Result<>(1, 2L), "Update count and generated id for single row");
+                    // This will throw an integrity constraint violation exception which will cause a transaction rollback.
+                    prep.exec("Cat");
+                    return 1;
+                });
+            } catch (Exception e) { /**/ }
+
+            prep.exec("Fish");
+
+            try (Stream<String> stream =
+                 jdbc.query(rs -> rs.getString(1), "SELECT name FROM pets ORDER BY id ASC")
+            ) {
+                List<String> users = stream.toList();
+                assertEquals(users, List.of("Dog", "Fish"), "Pets in database");
+            }
         }
     }
 }
