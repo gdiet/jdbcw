@@ -13,10 +13,6 @@ public class PrepReturnKey<T> implements AutoCloseable {
         this.mapper = mapper;
     }
 
-    static PrepReturnKey<Long> longType(PreparedStatement prep) {
-        return new PrepReturnKey<>(prep, (rs) -> rs.getLong(1));
-    }
-
     /** This method is synchronized thus thread safe. For maximum performance in multithreaded environments, consider
       * using e.g. {@link ThreadLocal} instances of {@link PrepReturnKey}. */
     public T exec(Object... args) throws SQLException {

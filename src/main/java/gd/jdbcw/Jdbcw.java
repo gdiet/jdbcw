@@ -13,7 +13,7 @@ public class Jdbcw {
 
     /** RuntimeException wrapper for an {@link SQLException}. */
     public static final class JDBCWException extends RuntimeException {
-        public SQLException cause;
+        public final SQLException cause;
         public JDBCWException(SQLException cause) { this.cause = cause; }
     }
     public interface Transaction { void run() throws SQLException; }
@@ -24,12 +24,14 @@ public class Jdbcw {
     /** Sets setAutoCommit(true). */
     public Jdbcw(final Connection con) throws SQLException { this.con = con; con.setAutoCommit(true); }
 
+    /** Make sure that no concurrent SQL commands are run that are not supposed to be part of this transaction. */
     public void transaction(Transaction t) throws SQLException {
         try { con.setAutoCommit(false); t.run(); con.commit(); }
         catch (Exception e) { con.rollback(); throw e; }
         finally { con.setAutoCommit(true); }
     }
 
+    /** Make sure that no concurrent SQL commands are run that are not supposed to be part of this transaction. */
     public <T> T transaction(TransactionWithResult<T> t) throws SQLException {
         try { con.setAutoCommit(false); T result = t.get(); con.commit(); return result; }
         catch (Exception e) { con.rollback(); throw e; }
@@ -60,7 +62,7 @@ public class Jdbcw {
     /** Use when a generated BIGINT or other Java long type key is returned.
       * If possible close the {@link PrepReturnKey} instance after use e.g. by wrapping it into a try-resource block. */
     public PrepReturnKey<Long> prepReturnLong(final String sql) throws SQLException {
-        return PrepReturnKey.longType(con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS));
+        return prepReturnKey(rs -> rs.getLong(1), sql);
     }
 
     /** If possible close the stream after use by wrapping it into a try-resource block. */
@@ -87,6 +89,7 @@ public class Jdbcw {
 
     public static <T> Stream<T> query(PreparedStatement prep, Mapper<T> mapper, Object... args) throws SQLException {
         setArgs(prep, args);
+        // The ResultSet is not closed when the end of stream is reached - too little value for too big effort here.
         ResultSet rs = prep.executeQuery();
         Iterator<T> it = new Iterator<>() {
             boolean hasNext = rs.next();
