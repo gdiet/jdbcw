@@ -105,7 +105,6 @@ public class UseCase01Test {
                     assertEquals(prep.exec("Cat"), new PrepReturnKeys.Result<>(1, 2L), "Update count and generated id for single row");
                     // This will throw an integrity constraint violation exception which will cause a transaction rollback.
                     prep.exec("Cat");
-                    return 1;
                 });
             } catch (Exception e) { /**/ }
 

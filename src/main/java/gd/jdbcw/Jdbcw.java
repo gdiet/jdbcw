@@ -16,21 +16,22 @@ public class Jdbcw {
         public SQLException cause;
         public JDBCWException(SQLException cause) { this.cause = cause; }
     }
-    public interface Transaction<T> { T get() throws SQLException; }
+    public interface Transaction { void run() throws SQLException; }
+    public interface TransactionWithResult<T> { T get() throws SQLException; }
 
     private final Connection con;
 
     /** Sets setAutoCommit(true). */
     public Jdbcw(final Connection con) throws SQLException { this.con = con; con.setAutoCommit(true); }
 
-    // TODO return void method missing, don't force user to return something.
-    public <T> T transaction(Transaction<T> t) throws SQLException {
-        try {
-            con.setAutoCommit(false);
-            T result = t.get();
-            con.commit();
-            return result;
-        }
+    public void transaction(Transaction t) throws SQLException {
+        try { con.setAutoCommit(false); t.run(); con.commit(); }
+        catch (Exception e) { con.rollback(); throw e; }
+        finally { con.setAutoCommit(true); }
+    }
+
+    public <T> T transaction(TransactionWithResult<T> t) throws SQLException {
+        try { con.setAutoCommit(false); T result = t.get(); con.commit(); return result; }
         catch (Exception e) { con.rollback(); throw e; }
         finally { con.setAutoCommit(true); }
     }
