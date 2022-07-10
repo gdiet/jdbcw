@@ -52,15 +52,15 @@ public class Jdbcw {
         return new PrepExec(con.prepareStatement(sql));
     }
 
-    /** If possible close the {@link PrepReturnKeys} instance after use e.g. by wrapping it into a try-resource block. */
-    public <T> PrepReturnKeys<T> prepReturnKeys(final Mapper<T> mapper, final String sql) throws SQLException {
-        return new PrepReturnKeys<>(con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS), mapper);
+    /** If possible close the {@link PrepReturnKey} instance after use e.g. by wrapping it into a try-resource block. */
+    public <T> PrepReturnKey<T> prepReturnKey(final Mapper<T> mapper, final String sql) throws SQLException {
+        return new PrepReturnKey<>(con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS), mapper);
     }
 
-    /** Use when a generated BIGINT key is returned.
-      * If possible close the {@link PrepReturnKeys} instance after use e.g. by wrapping it into a try-resource block. */
-    public PrepReturnKeys<Long> prepReturnKeys(final String sql) throws SQLException {
-        return new PrepReturnKeys<>(con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS), rs -> rs.getLong(1));
+    /** Use when a generated BIGINT or other Java long type key is returned.
+      * If possible close the {@link PrepReturnKey} instance after use e.g. by wrapping it into a try-resource block. */
+    public PrepReturnKey<Long> prepReturnLong(final String sql) throws SQLException {
+        return PrepReturnKey.longType(con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS));
     }
 
     /** If possible close the stream after use by wrapping it into a try-resource block. */
